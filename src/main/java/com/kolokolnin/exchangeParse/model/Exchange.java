@@ -1,34 +1,34 @@
 package com.kolokolnin.exchangeParse.model;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import lombok.ToString;
+import lombok.*;
+import org.springframework.stereotype.Component;
 
 import javax.persistence.*;
 
 @Entity
 @Data
-@Table(name = "exchange_table",schema = "exchange")
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+@Table(name = "exchange_table")
 public class Exchange {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
-    @Column(name = "id")
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private long id;
 
-    @Column(name = "char_name")
+    @Column(name = "_char_name")
     private String charName;
 
-    @Column(name = "nominal")
+    @Column(name = "_nominal")
     private int nominal;
 
-    @Column(name = "name")
+    @Column(name = "_name")
     private String name;
 
-    @Column(name = "value")
+    @Column(name = "_value")
     private double value;
 
-    @Column(name = "changed")
+    @Column(name = "_changed")
     private String changed;
 }

@@ -2,48 +2,62 @@ package com.kolokolnin.exchangeParse.job;
 
 import com.kolokolnin.exchangeParse.model.Exchange;
 import com.kolokolnin.exchangeParse.service.ExchangeService;
+import lombok.extern.slf4j.Slf4j;
 import org.jsoup.Connection;
 import org.jsoup.Jsoup;
-import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
+
 
 @Component
-public class ParseTask implements Perser{
+@Slf4j
+public class ParseTask {
 
     @Autowired
-    Exchange exchange;
-    List<Exchange> exchangeList = new ArrayList<>();
+    private ExchangeService exchangeService;
 
-    String url = "https://www.banki.ru/products/currency/cb/";
+    @Value("${banki.currency.url}")
+    private String currencyUrl;
 
     @Scheduled(fixedDelay = 10000L)
-    public void parseNewExchange() throws IOException {
+    public void parseExchange() throws IOException {
+        log.info("scheduler is working now to parse exchange");
 
-        Connection document = Jsoup.connect(url).userAgent("searchEngineBot/0.1").referrer("http://www.google.com")
-                .ignoreHttpErrors(true).ignoreContentType(true).timeout(5000);
-        Elements tabels = document.get().getElementsByTag("tbody");
-        Element our_table = tabels.get(0);
-        Elements elements_from_tabele = our_table.children();
+    getDOMChildren().stream()
+            .peek(child -> log.info("fetching the result from URL to parse: {}", child))
+            .map(this::buildExchange)
+            .peek(exchange -> log.info("saving the result: {}", exchange))
+            .forEach(exchangeService::save);
 
+        log.info("scheduler has been done the process of parsing");
 
-        for (int i = 0; i < our_table.childrenSize(); i++) {
-            exchange = new Exchange();
-            exchange.setId(i);
-            exchange.setCharName(our_table.children().get(i).child(0).text());
-            exchange.setNominal(Integer.parseInt(our_table.children().get(i).child(1).text()));
-            exchange.setName(our_table.children().get(i).child(2).text());
-            exchange.setValue(Double.parseDouble(our_table.children().get(i).child(3).text()));
-            exchange.setChanged(our_table.children().get(i).child(4).text());
-            exchangeList.add(exchange);
-        }
+    }
+    private Exchange buildExchange(Element element){
+        return Exchange.builder()
+                .charName(element.child(0).text())
+                .nominal(Integer.parseInt(element.child(1).text()))
+                .name(element.child(2).text())
+                .value(Double.parseDouble(element.child(3).text()))
+                .changed(element.child(4).text())
+                .build();
+    }
 
+    private Elements getDOMChildren() throws IOException {
+        return  buildConnection().get().getElementsByTag("tbody");
+    }
+
+    private Connection buildConnection(){
+        return Jsoup.connect(currencyUrl)
+                .userAgent("searchEngineBot/0.1")
+                .referrer("http://www.google.com")
+                .ignoreHttpErrors(true)
+                .ignoreContentType(true)
+                .timeout(5000);
     }
 }
